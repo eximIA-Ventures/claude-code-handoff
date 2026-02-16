@@ -67,12 +67,39 @@ download_file "rules/auto-handoff.md" "$CLAUDE_DIR/rules/auto-handoff.md"
 
 # 4. Install hooks (auto-handoff context monitor)
 echo -e "  ${YELLOW}[4/10]${NC} Installing hooks..."
+
+# Detect reinstall: save user's custom settings before overwriting
+IS_REINSTALL=false
+SAVED_THRESHOLD=""
+SAVED_MAX_CONTEXT=""
+if [ -f "$CLAUDE_DIR/hooks/context-monitor.sh" ]; then
+  IS_REINSTALL=true
+  SAVED_THRESHOLD=$(grep -oP 'CLAUDE_CONTEXT_THRESHOLD:-\K[0-9]+' "$CLAUDE_DIR/hooks/context-monitor.sh" 2>/dev/null || echo "")
+  SAVED_MAX_CONTEXT=$(grep -oP 'CLAUDE_MAX_CONTEXT:-\K[0-9]+' "$CLAUDE_DIR/hooks/context-monitor.sh" 2>/dev/null || echo "")
+fi
+
 download_file "hooks/context-monitor.sh" "$CLAUDE_DIR/hooks/context-monitor.sh"
 download_file "hooks/session-cleanup.sh" "$CLAUDE_DIR/hooks/session-cleanup.sh"
 chmod +x "$CLAUDE_DIR/hooks/context-monitor.sh"
 chmod +x "$CLAUDE_DIR/hooks/session-cleanup.sh"
-# Auto-handoff disabled by default (beta feature)
-touch "$CLAUDE_DIR/hooks/.auto-handoff-disabled"
+
+if [ "$IS_REINSTALL" = true ]; then
+  # Restore user's custom settings
+  if [ -n "$SAVED_THRESHOLD" ] && [ "$SAVED_THRESHOLD" != "90" ]; then
+    sed -i.bak "s/CLAUDE_CONTEXT_THRESHOLD:-90/CLAUDE_CONTEXT_THRESHOLD:-${SAVED_THRESHOLD}/" "$CLAUDE_DIR/hooks/context-monitor.sh"
+    rm -f "$CLAUDE_DIR/hooks/context-monitor.sh.bak"
+    echo -e "    Preserved threshold: ${CYAN}${SAVED_THRESHOLD}%${NC}"
+  fi
+  if [ -n "$SAVED_MAX_CONTEXT" ] && [ "$SAVED_MAX_CONTEXT" != "200000" ]; then
+    sed -i.bak "s/CLAUDE_MAX_CONTEXT:-200000/CLAUDE_MAX_CONTEXT:-${SAVED_MAX_CONTEXT}/" "$CLAUDE_DIR/hooks/context-monitor.sh"
+    rm -f "$CLAUDE_DIR/hooks/context-monitor.sh.bak"
+    echo -e "    Preserved max context: ${CYAN}${SAVED_MAX_CONTEXT} tokens${NC}"
+  fi
+  # Don't touch .auto-handoff-disabled — preserve user's on/off choice
+else
+  # Fresh install: auto-handoff disabled by default (beta feature)
+  touch "$CLAUDE_DIR/hooks/.auto-handoff-disabled"
+fi
 
 # 5. Configure hooks in settings.json
 echo -e "  ${YELLOW}[5/10]${NC} Configuring hooks in settings.json..."

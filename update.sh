@@ -58,13 +58,34 @@ echo -e "  ${YELLOW}[2/5]${NC} Updating rules..."
 download_file "rules/session-continuity.md" "$CLAUDE_DIR/rules/session-continuity.md"
 download_file "rules/auto-handoff.md" "$CLAUDE_DIR/rules/auto-handoff.md"
 
-# 3. Update hooks
+# 3. Update hooks (preserving user configuration)
 echo -e "  ${YELLOW}[3/5]${NC} Updating hooks..."
 mkdir -p "$CLAUDE_DIR/hooks"
+
+# Save user's custom settings before overwriting
+SAVED_THRESHOLD=""
+SAVED_MAX_CONTEXT=""
+if [ -f "$CLAUDE_DIR/hooks/context-monitor.sh" ]; then
+  SAVED_THRESHOLD=$(grep -oP 'CLAUDE_CONTEXT_THRESHOLD:-\K[0-9]+' "$CLAUDE_DIR/hooks/context-monitor.sh" 2>/dev/null || echo "")
+  SAVED_MAX_CONTEXT=$(grep -oP 'CLAUDE_MAX_CONTEXT:-\K[0-9]+' "$CLAUDE_DIR/hooks/context-monitor.sh" 2>/dev/null || echo "")
+fi
+
 download_file "hooks/context-monitor.sh" "$CLAUDE_DIR/hooks/context-monitor.sh"
 download_file "hooks/session-cleanup.sh" "$CLAUDE_DIR/hooks/session-cleanup.sh"
 chmod +x "$CLAUDE_DIR/hooks/context-monitor.sh"
 chmod +x "$CLAUDE_DIR/hooks/session-cleanup.sh"
+
+# Restore user's custom settings
+if [ -n "$SAVED_THRESHOLD" ] && [ "$SAVED_THRESHOLD" != "90" ]; then
+  sed -i.bak "s/CLAUDE_CONTEXT_THRESHOLD:-90/CLAUDE_CONTEXT_THRESHOLD:-${SAVED_THRESHOLD}/" "$CLAUDE_DIR/hooks/context-monitor.sh"
+  rm -f "$CLAUDE_DIR/hooks/context-monitor.sh.bak"
+  echo -e "    Preserved threshold: ${CYAN}${SAVED_THRESHOLD}%${NC}"
+fi
+if [ -n "$SAVED_MAX_CONTEXT" ] && [ "$SAVED_MAX_CONTEXT" != "200000" ]; then
+  sed -i.bak "s/CLAUDE_MAX_CONTEXT:-200000/CLAUDE_MAX_CONTEXT:-${SAVED_MAX_CONTEXT}/" "$CLAUDE_DIR/hooks/context-monitor.sh"
+  rm -f "$CLAUDE_DIR/hooks/context-monitor.sh.bak"
+  echo -e "    Preserved max context: ${CYAN}${SAVED_MAX_CONTEXT} tokens${NC}"
+fi
 
 # 4. Ensure hooks are configured in settings.json
 echo -e "  ${YELLOW}[4/5]${NC} Checking settings.json hooks..."
@@ -102,4 +123,5 @@ if [ "$CLEANED" -gt 0 ]; then
 fi
 echo ""
 echo -e "  Handoff data in .claude/handoffs/ was ${CYAN}not touched${NC}."
+echo -e "  Auto-handoff settings (threshold, plan, on/off) were ${CYAN}preserved${NC}."
 echo ""

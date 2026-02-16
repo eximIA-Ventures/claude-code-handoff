@@ -58,12 +58,43 @@ copyFile('rules/auto-handoff.md', path.join(CLAUDE_DIR, 'rules', 'auto-handoff.m
 
 // 4. Install hooks
 console.log(`  ${YELLOW}[4/10]${NC} Installing hooks...`);
-copyFile('hooks/context-monitor.sh', path.join(CLAUDE_DIR, 'hooks', 'context-monitor.sh'));
+
+// Detect reinstall: save user's custom settings before overwriting
+const monitorPath = path.join(CLAUDE_DIR, 'hooks', 'context-monitor.sh');
+let isReinstall = false;
+let savedThreshold = '';
+let savedMaxContext = '';
+if (fs.existsSync(monitorPath)) {
+  isReinstall = true;
+  const oldContent = fs.readFileSync(monitorPath, 'utf-8');
+  const thresholdMatch = oldContent.match(/CLAUDE_CONTEXT_THRESHOLD:-(\d+)/);
+  const maxContextMatch = oldContent.match(/CLAUDE_MAX_CONTEXT:-(\d+)/);
+  if (thresholdMatch) savedThreshold = thresholdMatch[1];
+  if (maxContextMatch) savedMaxContext = maxContextMatch[1];
+}
+
+copyFile('hooks/context-monitor.sh', monitorPath);
 copyFile('hooks/session-cleanup.sh', path.join(CLAUDE_DIR, 'hooks', 'session-cleanup.sh'));
-fs.chmodSync(path.join(CLAUDE_DIR, 'hooks', 'context-monitor.sh'), 0o755);
+fs.chmodSync(monitorPath, 0o755);
 fs.chmodSync(path.join(CLAUDE_DIR, 'hooks', 'session-cleanup.sh'), 0o755);
-// Auto-handoff disabled by default (beta feature)
-fs.writeFileSync(path.join(CLAUDE_DIR, 'hooks', '.auto-handoff-disabled'), '');
+
+if (isReinstall) {
+  // Restore user's custom settings
+  let content = fs.readFileSync(monitorPath, 'utf-8');
+  if (savedThreshold && savedThreshold !== '90') {
+    content = content.replace('CLAUDE_CONTEXT_THRESHOLD:-90', `CLAUDE_CONTEXT_THRESHOLD:-${savedThreshold}`);
+    console.log(`    Preserved threshold: ${CYAN}${savedThreshold}%${NC}`);
+  }
+  if (savedMaxContext && savedMaxContext !== '200000') {
+    content = content.replace('CLAUDE_MAX_CONTEXT:-200000', `CLAUDE_MAX_CONTEXT:-${savedMaxContext}`);
+    console.log(`    Preserved max context: ${CYAN}${savedMaxContext} tokens${NC}`);
+  }
+  fs.writeFileSync(monitorPath, content);
+  // Don't touch .auto-handoff-disabled — preserve user's on/off choice
+} else {
+  // Fresh install: auto-handoff disabled by default (beta feature)
+  fs.writeFileSync(path.join(CLAUDE_DIR, 'hooks', '.auto-handoff-disabled'), '');
+}
 
 // 5. Configure hooks in settings.json
 console.log(`  ${YELLOW}[5/10]${NC} Configuring hooks in settings.json...`);
