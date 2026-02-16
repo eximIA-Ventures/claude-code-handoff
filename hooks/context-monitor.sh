@@ -3,9 +3,9 @@
 # Detecta quando o contexto está próximo do limite e força o salvamento do handoff.
 # Usado como hook "Stop" do Claude Code.
 
-# Check if auto-handoff is disabled
+# Auto-handoff is opt-in: only runs if explicitly enabled
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [ -f "$SCRIPT_DIR/.auto-handoff-disabled" ]; then
+if [ ! -f "$SCRIPT_DIR/.auto-handoff-enabled" ]; then
   exit 0
 fi
 

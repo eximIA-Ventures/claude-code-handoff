@@ -50,6 +50,7 @@ rm -f "$CLAUDE_DIR/rules/auto-handoff.md"
 echo -e "  ${YELLOW}[3/6]${NC} Removing hooks..."
 rm -f "$CLAUDE_DIR/hooks/context-monitor.sh"
 rm -f "$CLAUDE_DIR/hooks/session-cleanup.sh"
+rm -f "$CLAUDE_DIR/hooks/.auto-handoff-enabled"
 rm -f "$CLAUDE_DIR/hooks/.auto-handoff-disabled"
 rmdir "$CLAUDE_DIR/hooks" 2>/dev/null || true
 

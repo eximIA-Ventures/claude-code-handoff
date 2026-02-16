@@ -95,11 +95,11 @@ if [ "$IS_REINSTALL" = true ]; then
     rm -f "$CLAUDE_DIR/hooks/context-monitor.sh.bak"
     echo -e "    Preserved max context: ${CYAN}${SAVED_MAX_CONTEXT} tokens${NC}"
   fi
-  # Don't touch .auto-handoff-disabled — preserve user's on/off choice
-else
-  # Fresh install: auto-handoff disabled by default (beta feature)
-  touch "$CLAUDE_DIR/hooks/.auto-handoff-disabled"
 fi
+# Auto-handoff is opt-in: disabled by default (no file = disabled)
+# User enables via /auto-handoff which creates .auto-handoff-enabled
+# Clean up legacy disabled flag if present
+rm -f "$CLAUDE_DIR/hooks/.auto-handoff-disabled"
 
 # 5. Configure hooks in settings.json
 echo -e "  ${YELLOW}[5/10]${NC} Configuring hooks in settings.json..."

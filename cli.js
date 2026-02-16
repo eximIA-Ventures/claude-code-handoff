@@ -90,11 +90,12 @@ if (isReinstall) {
     console.log(`    Preserved max context: ${CYAN}${savedMaxContext} tokens${NC}`);
   }
   fs.writeFileSync(monitorPath, content);
-  // Don't touch .auto-handoff-disabled — preserve user's on/off choice
-} else {
-  // Fresh install: auto-handoff disabled by default (beta feature)
-  fs.writeFileSync(path.join(CLAUDE_DIR, 'hooks', '.auto-handoff-disabled'), '');
 }
+// Auto-handoff is opt-in: disabled by default (no file = disabled)
+// User enables via /auto-handoff which creates .auto-handoff-enabled
+// Clean up legacy disabled flag if present
+const legacyDisabled = path.join(CLAUDE_DIR, 'hooks', '.auto-handoff-disabled');
+if (fs.existsSync(legacyDisabled)) fs.unlinkSync(legacyDisabled);
 
 // 5. Configure hooks in settings.json
 console.log(`  ${YELLOW}[5/10]${NC} Configuring hooks in settings.json...`);

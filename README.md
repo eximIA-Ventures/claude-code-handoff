@@ -253,7 +253,7 @@ THRESHOLD_PERCENT=${CLAUDE_CONTEXT_THRESHOLD:-90}   # change 90 to your value
 
 - **One-shot trigger**: A flag file in `/tmp` (per session ID) prevents infinite loops — the hook triggers exactly once per session, even if Claude's handoff response pushes the transcript further
 - **Session cleanup**: A `SessionStart` hook automatically cleans up stale flag files older than 24 hours
-- **Disable switch**: Create `.claude/hooks/.auto-handoff-disabled` to completely disable the monitor (or use `/auto-handoff` to toggle)
+- **Opt-in design**: Auto-handoff only runs when `.claude/hooks/.auto-handoff-enabled` exists (created by `/auto-handoff`). No file = disabled by default
 - **Non-destructive**: The hook only blocks and instructs — it never modifies files directly. Claude performs the actual handoff save
 
 ### What Happens When It Triggers
@@ -311,7 +311,7 @@ your-project/
     ├── hooks/
     │   ├── context-monitor.sh      ← Stop hook (monitors context size)
     │   ├── session-cleanup.sh      ← SessionStart hook (cleans old flags)
-    │   └── .auto-handoff-disabled  ← Disable flag (remove to enable)
+    │   └── .auto-handoff-enabled   ← Enable flag (created by /auto-handoff)
     ├── settings.json               ← Hook configuration
     └── handoffs/                   ← Session state (gitignored)
         ├── _active.md              ← Current workstream
@@ -604,7 +604,7 @@ A: Absolutely. They're plain markdown. You can add notes, reorder next steps, or
 A: The threshold is a percentage of Claude Code's 200K token context window. At 90% (default), the hook triggers at 180K tokens. The hook reads the **actual token count** from Claude's API usage data — not file size estimates. You can set any value from 1-100 via env var (`CLAUDE_CONTEXT_THRESHOLD=80`) or the `/auto-handoff` command.
 
 **Q: Can I disable auto-handoff?**
-A: Yes. Run `/auto-handoff` and select "Disable", or manually create the file `.claude/hooks/.auto-handoff-disabled`. Delete the file to re-enable.
+A: Yes. Run `/auto-handoff` and select "Disable", or manually delete `.claude/hooks/.auto-handoff-enabled`. Without this file, auto-handoff is off.
 
 **Q: What if auto-handoff triggers too early/late?**
 A: Adjust the threshold. If it triggers too early, increase to 95%. If you're running out of context before it triggers, lower to 80% or 75%. Use `/auto-handoff` to change it interactively.

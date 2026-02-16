@@ -6,9 +6,9 @@ Toggle the automatic handoff context monitor on/off, configure threshold, and se
 
 ### Step 1: Check current state
 
-Check if `.claude/hooks/.auto-handoff-disabled` exists:
-- If exists → currently DISABLED
-- If not exists → currently ENABLED
+Check if `.claude/hooks/.auto-handoff-enabled` exists:
+- If exists → currently ENABLED
+- If not exists → currently DISABLED (default)
 
 Also read from `.claude/hooks/context-monitor.sh`:
 - `THRESHOLD_PERCENT` value (the default in `THRESHOLD_PERCENT=${CLAUDE_CONTEXT_THRESHOLD:-XX}`)
@@ -30,7 +30,9 @@ Use AskUserQuestion:
 ### Step 3: Execute
 
 #### Toggle (Ativar/Desativar):
-- Create or delete `.claude/hooks/.auto-handoff-disabled`
+- Ativar: create `.claude/hooks/.auto-handoff-enabled`
+- Desativar: delete `.claude/hooks/.auto-handoff-enabled`
+- Also delete legacy `.claude/hooks/.auto-handoff-disabled` if it exists
 
 #### Ajustar threshold:
 Ask with AskUserQuestion:
@@ -52,7 +54,7 @@ Ask with AskUserQuestion:
 - Update the `MAX_CONTEXT_TOKENS` default value in `context-monitor.sh` by changing `MAX_CONTEXT_TOKENS=${CLAUDE_MAX_CONTEXT:-XXXXXX}` to the chosen value
 
 #### Ativar com configuração customizada:
-Run both "Alterar plano" and "Ajustar threshold" flows above, then delete `.claude/hooks/.auto-handoff-disabled`
+Run both "Alterar plano" and "Ajustar threshold" flows above, then create `.claude/hooks/.auto-handoff-enabled`
 
 ### Step 4: Confirm
 
