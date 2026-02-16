@@ -72,7 +72,7 @@ SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 if [ -f "$SETTINGS_FILE" ]; then
   if ! grep -q "context-monitor" "$SETTINGS_FILE" 2>/dev/null; then
     if command -v jq &>/dev/null; then
-      HOOKS_JSON='{"Stop":[{"hooks":[{"type":"command","command":"$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh","timeout":10}]}],"SessionStart":[{"hooks":[{"type":"command","command":"$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh","timeout":5}]}]}'
+      HOOKS_JSON='{"Stop":[{"hooks":[{"type":"command","command":"\"$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh\"","timeout":10}]}],"SessionStart":[{"hooks":[{"type":"command","command":"\"$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh\"","timeout":5}]}]}'
       jq --argjson hooks "$HOOKS_JSON" '. + {hooks: $hooks}' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
       echo -e "    Hooks added to settings.json"
     else

@@ -67,8 +67,8 @@ fs.chmodSync(path.join(CLAUDE_DIR, 'hooks', 'session-cleanup.sh'), 0o755);
 console.log(`  ${YELLOW}[5/10]${NC} Configuring hooks in settings.json...`);
 const settingsPath = path.join(CLAUDE_DIR, 'settings.json');
 const hooksConfig = {
-  Stop: [{ hooks: [{ type: 'command', command: '$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh', timeout: 10 }] }],
-  SessionStart: [{ hooks: [{ type: 'command', command: '$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh', timeout: 5 }] }]
+  Stop: [{ hooks: [{ type: 'command', command: '"$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh"', timeout: 10 }] }],
+  SessionStart: [{ hooks: [{ type: 'command', command: '"$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh"', timeout: 5 }] }]
 };
 if (fs.existsSync(settingsPath)) {
   const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));

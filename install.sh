@@ -82,8 +82,8 @@ if [ -f "$SETTINGS_FILE" ]; then
     if command -v jq &>/dev/null; then
       HOOKS_JSON='{
         "hooks": {
-          "Stop": [{"hooks": [{"type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh", "timeout": 10}]}],
-          "SessionStart": [{"hooks": [{"type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh", "timeout": 5}]}]
+          "Stop": [{"hooks": [{"type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh\"", "timeout": 10}]}],
+          "SessionStart": [{"hooks": [{"type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh\"", "timeout": 5}]}]
         }
       }'
       jq --argjson hooks "$(echo "$HOOKS_JSON" | jq '.hooks')" '. + {hooks: $hooks}' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
@@ -102,7 +102,7 @@ if [ -f "$SETTINGS_FILE" ]; then
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh\"",
             "timeout": 10
           }
         ]
@@ -113,7 +113,7 @@ if [ -f "$SETTINGS_FILE" ]; then
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh\"",
             "timeout": 5
           }
         ]
@@ -136,7 +136,7 @@ SETTINGSEOF
         "hooks": [
           {
             "type": "command",
-            "command": "\$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh",
+            "command": "\"\$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh\"",
             "timeout": 10
           }
         ]
@@ -147,7 +147,7 @@ SETTINGSEOF
         "hooks": [
           {
             "type": "command",
-            "command": "\$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh",
+            "command": "\"\$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh\"",
             "timeout": 5
           }
         ]
@@ -169,7 +169,7 @@ else
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh\"",
             "timeout": 10
           }
         ]
@@ -180,7 +180,7 @@ else
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh\"",
             "timeout": 5
           }
         ]
