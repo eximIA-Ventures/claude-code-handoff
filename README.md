@@ -331,6 +331,30 @@ The installer adds a `session-continuity.md` rules file that Claude auto-loads o
 
 ---
 
+## Update
+
+Update commands and rules to the latest version without touching your handoff data:
+
+```bash
+cd your-project
+npx claude-code-handoff@latest
+```
+
+Or via curl:
+
+```bash
+cd your-project
+curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/claude-code-handoff/main/update.sh | bash
+```
+
+This will:
+- Overwrite command files with the latest versions
+- Update the rules file
+- Remove legacy Portuguese commands if present (`retomar`, `salvar-handoff`, `trocar-contexto`)
+- **Not touch** your `.claude/handoffs/` data
+
+---
+
 ## Uninstall
 
 ```bash
