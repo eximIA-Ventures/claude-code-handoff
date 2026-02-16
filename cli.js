@@ -36,26 +36,27 @@ function copyFile(src, dst) {
 }
 
 // 1. Create directories
-console.log(`  ${YELLOW}[1/7]${NC} Creating directories...`);
+console.log(`  ${YELLOW}[1/8]${NC} Creating directories...`);
 ensureDir(path.join(CLAUDE_DIR, 'commands'));
 ensureDir(path.join(CLAUDE_DIR, 'rules'));
 ensureDir(path.join(CLAUDE_DIR, 'handoffs', 'archive'));
 
 // 2. Copy commands
-console.log(`  ${YELLOW}[2/7]${NC} Installing commands...`);
+console.log(`  ${YELLOW}[2/8]${NC} Installing commands...`);
 copyFile('commands/resume.md', path.join(CLAUDE_DIR, 'commands', 'resume.md'));
 copyFile('commands/save-handoff.md', path.join(CLAUDE_DIR, 'commands', 'save-handoff.md'));
 copyFile('commands/switch-context.md', path.join(CLAUDE_DIR, 'commands', 'switch-context.md'));
 copyFile('commands/handoff.md', path.join(CLAUDE_DIR, 'commands', 'handoff.md'));
+copyFile('commands/delete-handoff.md', path.join(CLAUDE_DIR, 'commands', 'delete-handoff.md'));
 
 // 3. Copy rules
-console.log(`  ${YELLOW}[3/7]${NC} Installing rules...`);
+console.log(`  ${YELLOW}[3/8]${NC} Installing rules...`);
 copyFile('rules/session-continuity.md', path.join(CLAUDE_DIR, 'rules', 'session-continuity.md'));
 
 // 4. Create initial _active.md
 const activePath = path.join(CLAUDE_DIR, 'handoffs', '_active.md');
 if (!fs.existsSync(activePath)) {
-  console.log(`  ${YELLOW}[4/7]${NC} Creating initial handoff...`);
+  console.log(`  ${YELLOW}[4/8]${NC} Creating initial handoff...`);
   fs.writeFileSync(activePath, `# Session Handoff
 
 > No active session yet. Use \`/handoff\` or \`/save-handoff\` to save your first session state.
@@ -82,11 +83,11 @@ if (!fs.existsSync(activePath)) {
 (none)
 `);
 } else {
-  console.log(`  ${YELLOW}[4/7]${NC} Handoff already exists, keeping it`);
+  console.log(`  ${YELLOW}[4/8]${NC} Handoff already exists, keeping it`);
 }
 
 // 5. Update .gitignore
-console.log(`  ${YELLOW}[5/7]${NC} Updating .gitignore...`);
+console.log(`  ${YELLOW}[5/8]${NC} Updating .gitignore...`);
 const gitignorePath = path.join(PROJECT_DIR, '.gitignore');
 if (fs.existsSync(gitignorePath)) {
   const content = fs.readFileSync(gitignorePath, 'utf-8');
@@ -98,7 +99,7 @@ if (fs.existsSync(gitignorePath)) {
 }
 
 // 6. Update CLAUDE.md
-console.log(`  ${YELLOW}[6/7]${NC} Updating CLAUDE.md...`);
+console.log(`  ${YELLOW}[6/8]${NC} Updating CLAUDE.md...`);
 const claudeMdPath = path.join(CLAUDE_DIR, 'CLAUDE.md');
 const continuityBlock = `## Session Continuity (MANDATORY)
 
@@ -123,17 +124,19 @@ if (fs.existsSync(claudeMdPath)) {
 }
 
 // 7. Verify
-console.log(`  ${YELLOW}[7/7]${NC} Verifying installation...`);
+console.log(`  ${YELLOW}[7/8]${NC} Verifying installation...`);
 let installed = 0;
-for (const f of ['resume.md', 'save-handoff.md', 'switch-context.md', 'handoff.md']) {
+for (const f of ['resume.md', 'save-handoff.md', 'switch-context.md', 'handoff.md', 'delete-handoff.md']) {
   if (fs.existsSync(path.join(CLAUDE_DIR, 'commands', f))) installed++;
 }
 
 console.log('');
-if (installed === 4) {
-  console.log(`${GREEN}  Installed successfully! (${installed}/4 commands)${NC}`);
+console.log(`  ${YELLOW}[8/8]${NC} Done!`);
+console.log('');
+if (installed === 5) {
+  console.log(`${GREEN}  Installed successfully! (${installed}/5 commands)${NC}`);
 } else {
-  console.log(`${YELLOW}  Partial install: ${installed}/4 commands${NC}`);
+  console.log(`${YELLOW}  Partial install: ${installed}/5 commands${NC}`);
 }
 console.log('');
 console.log('  Commands available:');
@@ -141,9 +144,10 @@ console.log(`    ${CYAN}/handoff${NC}              Auto-save session (no wizard)
 console.log(`    ${CYAN}/resume${NC}               Resume with wizard`);
 console.log(`    ${CYAN}/save-handoff${NC}         Save session state (wizard)`);
 console.log(`    ${CYAN}/switch-context${NC}       Switch workstream`);
+console.log(`    ${CYAN}/delete-handoff${NC}       Delete handoff(s)`);
 console.log('');
 console.log('  Files:');
-console.log('    .claude/commands/     4 command files');
+console.log('    .claude/commands/     5 command files');
 console.log('    .claude/rules/        session-continuity.md');
 console.log('    .claude/handoffs/     session state (gitignored)');
 console.log('');

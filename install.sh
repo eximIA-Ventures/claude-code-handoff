@@ -45,25 +45,26 @@ download_file() {
 }
 
 # 1. Create directories
-echo -e "  ${YELLOW}[1/7]${NC} Creating directories..."
+echo -e "  ${YELLOW}[1/8]${NC} Creating directories..."
 mkdir -p "$CLAUDE_DIR/commands"
 mkdir -p "$CLAUDE_DIR/rules"
 mkdir -p "$CLAUDE_DIR/handoffs/archive"
 
 # 2. Download/copy commands
-echo -e "  ${YELLOW}[2/7]${NC} Installing commands..."
+echo -e "  ${YELLOW}[2/8]${NC} Installing commands..."
 download_file "commands/resume.md" "$CLAUDE_DIR/commands/resume.md"
 download_file "commands/save-handoff.md" "$CLAUDE_DIR/commands/save-handoff.md"
 download_file "commands/switch-context.md" "$CLAUDE_DIR/commands/switch-context.md"
 download_file "commands/handoff.md" "$CLAUDE_DIR/commands/handoff.md"
+download_file "commands/delete-handoff.md" "$CLAUDE_DIR/commands/delete-handoff.md"
 
 # 3. Download/copy rules
-echo -e "  ${YELLOW}[3/7]${NC} Installing rules..."
+echo -e "  ${YELLOW}[3/8]${NC} Installing rules..."
 download_file "rules/session-continuity.md" "$CLAUDE_DIR/rules/session-continuity.md"
 
 # 4. Create initial _active.md if not exists
 if [ ! -f "$CLAUDE_DIR/handoffs/_active.md" ]; then
-  echo -e "  ${YELLOW}[4/7]${NC} Creating initial handoff..."
+  echo -e "  ${YELLOW}[4/8]${NC} Creating initial handoff..."
   cat > "$CLAUDE_DIR/handoffs/_active.md" << 'HANDOFF'
 # Session Handoff
 
@@ -91,11 +92,11 @@ if [ ! -f "$CLAUDE_DIR/handoffs/_active.md" ]; then
 (none)
 HANDOFF
 else
-  echo -e "  ${YELLOW}[4/7]${NC} Handoff already exists, keeping it"
+  echo -e "  ${YELLOW}[4/8]${NC} Handoff already exists, keeping it"
 fi
 
 # 5. Add to .gitignore
-echo -e "  ${YELLOW}[5/7]${NC} Updating .gitignore..."
+echo -e "  ${YELLOW}[5/8]${NC} Updating .gitignore..."
 GITIGNORE="$PROJECT_DIR/.gitignore"
 if [ -f "$GITIGNORE" ]; then
   if ! grep -q ".claude/handoffs/" "$GITIGNORE" 2>/dev/null; then
@@ -109,7 +110,7 @@ else
 fi
 
 # 6. Add to CLAUDE.md
-echo -e "  ${YELLOW}[6/7]${NC} Updating CLAUDE.md..."
+echo -e "  ${YELLOW}[6/8]${NC} Updating CLAUDE.md..."
 CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
 CONTINUITY_BLOCK='## Session Continuity (MANDATORY)
 
@@ -150,17 +151,19 @@ CLAUDEMD
 fi
 
 # 7. Summary
-echo -e "  ${YELLOW}[7/7]${NC} Verifying installation..."
+echo -e "  ${YELLOW}[7/8]${NC} Verifying installation..."
 INSTALLED=0
-for f in resume.md save-handoff.md switch-context.md handoff.md; do
+for f in resume.md save-handoff.md switch-context.md handoff.md delete-handoff.md; do
   [ -f "$CLAUDE_DIR/commands/$f" ] && INSTALLED=$((INSTALLED + 1))
 done
 
 echo ""
-if [ "$INSTALLED" -eq 4 ]; then
-  echo -e "${GREEN}  Installed successfully! ($INSTALLED/4 commands)${NC}"
+echo -e "  ${YELLOW}[8/8]${NC} Done!"
+echo ""
+if [ "$INSTALLED" -eq 5 ]; then
+  echo -e "${GREEN}  Installed successfully! ($INSTALLED/5 commands)${NC}"
 else
-  echo -e "${YELLOW}  Partial install: $INSTALLED/4 commands${NC}"
+  echo -e "${YELLOW}  Partial install: $INSTALLED/5 commands${NC}"
 fi
 echo ""
 echo -e "  Commands available:"
@@ -168,9 +171,10 @@ echo -e "    ${CYAN}/handoff${NC}              Auto-save session (no wizard)"
 echo -e "    ${CYAN}/resume${NC}               Resume with wizard"
 echo -e "    ${CYAN}/save-handoff${NC}         Save session state (wizard)"
 echo -e "    ${CYAN}/switch-context${NC}       Switch workstream"
+echo -e "    ${CYAN}/delete-handoff${NC}       Delete handoff(s)"
 echo ""
 echo -e "  Files:"
-echo -e "    .claude/commands/     4 command files"
+echo -e "    .claude/commands/     5 command files"
 echo -e "    .claude/rules/        session-continuity.md"
 echo -e "    .claude/handoffs/     session state (gitignored)"
 echo ""

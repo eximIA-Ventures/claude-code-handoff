@@ -32,6 +32,7 @@ rm -f "$CLAUDE_DIR/commands/handoff.md"
 rm -f "$CLAUDE_DIR/commands/resume.md"
 rm -f "$CLAUDE_DIR/commands/save-handoff.md"
 rm -f "$CLAUDE_DIR/commands/switch-context.md"
+rm -f "$CLAUDE_DIR/commands/delete-handoff.md"
 # Also remove legacy Portuguese commands if present
 rm -f "$CLAUDE_DIR/commands/retomar.md"
 rm -f "$CLAUDE_DIR/commands/salvar-handoff.md"

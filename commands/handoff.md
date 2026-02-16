@@ -55,7 +55,7 @@ Write `.claude/handoffs/_active.md` with this template:
 > Updated automatically. Read this to resume work after /clear.
 
 ## Last Updated
-[YYYY-MM-DD] — [brief description of session]
+[YYYY-MM-DD HH:MM] — [brief description of session]
 
 ## Active Workstream
 **[workstream name]** — [one-line description]
@@ -68,7 +68,7 @@ Write `.claude/handoffs/_active.md` with this template:
 
 ## What Was Done
 
-### Session 1 ([YYYY-MM-DD])
+### Session 1 ([YYYY-MM-DD HH:MM])
 - [concrete action 1]
 - [concrete action 2]
 - ...

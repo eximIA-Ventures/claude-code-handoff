@@ -75,7 +75,7 @@ Use this structure for the handoff content:
 > Updated automatically. Read this to resume work after /clear.
 
 ## Last Updated
-[current date and brief description]
+[YYYY-MM-DD HH:MM] — [brief description]
 
 ## Active Workstream
 [workstream name and brief context]
@@ -88,10 +88,10 @@ Use this structure for the handoff content:
 
 ## What Was Done
 
-### Session [N] ([date])
+### Session [N] ([YYYY-MM-DD HH:MM])
 [bullet points of concrete actions — be specific, not vague]
 
-### Session [N-1] ([date])
+### Session [N-1] ([YYYY-MM-DD HH:MM])
 [preserve previous sessions — don't delete history]
 
 ## What's Next
