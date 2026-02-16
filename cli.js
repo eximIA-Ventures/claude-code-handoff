@@ -3,24 +3,35 @@
 const fs = require('fs');
 const path = require('path');
 
-const GREEN = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const CYAN = '\x1b[36m';
+// Colors (RGB)
+const AMBER = '\x1b[38;2;245;158;11m';
+const GREEN = '\x1b[38;2;16;185;129m';
+const RED = '\x1b[38;2;239;68;68m';
+const CYAN = '\x1b[38;2;34;211;238m';
+const WHITE = '\x1b[37m';
+const GRAY = '\x1b[90m';
+const BOLD = '\x1b[1m';
+const DIM = '\x1b[2m';
 const NC = '\x1b[0m';
+
+const ok   = (msg) => console.log(`  ${GREEN}✓${NC} ${msg}`);
+const fail = (msg) => console.log(`  ${RED}✗${NC} ${msg}`);
+const info = (msg) => console.log(`  ${GRAY}${msg}${NC}`);
+const head = (msg) => console.log(`\n  ${AMBER}${BOLD}${msg}${NC}`);
 
 const PROJECT_DIR = process.cwd();
 const CLAUDE_DIR = path.join(PROJECT_DIR, '.claude');
 const SCRIPT_DIR = __dirname;
 
+// ─── Banner ───────────────────────────────────────────
 console.log('');
-console.log(`${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}`);
-console.log(`${CYAN}  claude-code-handoff — Session Continuity${NC}`);
-console.log(`${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}`);
+console.log(`  ${AMBER}${BOLD}┌──────────────────────────────────────┐${NC}`);
+console.log(`  ${AMBER}${BOLD}│${NC}   ${WHITE}${BOLD}claude-code-handoff${NC}  ${DIM}v1.9${NC}        ${AMBER}${BOLD}│${NC}`);
+console.log(`  ${AMBER}${BOLD}│${NC}   ${GRAY}Session Continuity for Claude Code${NC}  ${AMBER}${BOLD}│${NC}`);
+console.log(`  ${AMBER}${BOLD}└──────────────────────────────────────┘${NC}`);
 console.log('');
-console.log(`  Project: ${GREEN}${PROJECT_DIR}${NC}`);
-console.log('');
+info(`Project: ${WHITE}${PROJECT_DIR}${NC}`);
 
-// Helper
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
@@ -30,36 +41,14 @@ function copyFile(src, dst) {
   if (fs.existsSync(srcPath)) {
     fs.copyFileSync(srcPath, dst);
   } else {
-    console.error(`  Error: ${src} not found in package`);
+    fail(`${src} not found in package`);
     process.exit(1);
   }
 }
 
-// 1. Create directories
-console.log(`  ${YELLOW}[1/10]${NC} Creating directories...`);
-ensureDir(path.join(CLAUDE_DIR, 'commands'));
-ensureDir(path.join(CLAUDE_DIR, 'rules'));
-ensureDir(path.join(CLAUDE_DIR, 'hooks'));
-ensureDir(path.join(CLAUDE_DIR, 'handoffs', 'archive'));
+// ─── Pre-flight ───────────────────────────────────────
+head('Pre-flight');
 
-// 2. Copy commands
-console.log(`  ${YELLOW}[2/10]${NC} Installing commands...`);
-copyFile('commands/resume.md', path.join(CLAUDE_DIR, 'commands', 'resume.md'));
-copyFile('commands/save-handoff.md', path.join(CLAUDE_DIR, 'commands', 'save-handoff.md'));
-copyFile('commands/switch-context.md', path.join(CLAUDE_DIR, 'commands', 'switch-context.md'));
-copyFile('commands/handoff.md', path.join(CLAUDE_DIR, 'commands', 'handoff.md'));
-copyFile('commands/delete-handoff.md', path.join(CLAUDE_DIR, 'commands', 'delete-handoff.md'));
-copyFile('commands/auto-handoff.md', path.join(CLAUDE_DIR, 'commands', 'auto-handoff.md'));
-
-// 3. Copy rules
-console.log(`  ${YELLOW}[3/10]${NC} Installing rules...`);
-copyFile('rules/session-continuity.md', path.join(CLAUDE_DIR, 'rules', 'session-continuity.md'));
-copyFile('rules/auto-handoff.md', path.join(CLAUDE_DIR, 'rules', 'auto-handoff.md'));
-
-// 4. Install hooks
-console.log(`  ${YELLOW}[4/10]${NC} Installing hooks...`);
-
-// Detect reinstall: save user's custom settings before overwriting
 const monitorPath = path.join(CLAUDE_DIR, 'hooks', 'context-monitor.sh');
 let isReinstall = false;
 let savedThreshold = '';
@@ -73,32 +62,68 @@ if (fs.existsSync(monitorPath)) {
   if (maxContextMatch) savedMaxContext = maxContextMatch[1];
 }
 
+if (isReinstall) {
+  info('Existing installation found. Upgrading...');
+} else {
+  ok('Fresh install');
+}
+
+// ─── Directories ──────────────────────────────────────
+head('Creating directories');
+
+ensureDir(path.join(CLAUDE_DIR, 'commands'));
+ensureDir(path.join(CLAUDE_DIR, 'rules'));
+ensureDir(path.join(CLAUDE_DIR, 'hooks'));
+ensureDir(path.join(CLAUDE_DIR, 'handoffs', 'archive'));
+ok('Directory structure created');
+
+// ─── Commands ─────────────────────────────────────────
+head('Installing commands');
+
+copyFile('commands/resume.md', path.join(CLAUDE_DIR, 'commands', 'resume.md'));
+copyFile('commands/save-handoff.md', path.join(CLAUDE_DIR, 'commands', 'save-handoff.md'));
+copyFile('commands/switch-context.md', path.join(CLAUDE_DIR, 'commands', 'switch-context.md'));
+copyFile('commands/handoff.md', path.join(CLAUDE_DIR, 'commands', 'handoff.md'));
+copyFile('commands/delete-handoff.md', path.join(CLAUDE_DIR, 'commands', 'delete-handoff.md'));
+copyFile('commands/auto-handoff.md', path.join(CLAUDE_DIR, 'commands', 'auto-handoff.md'));
+ok('6 slash commands installed');
+
+// ─── Rules ────────────────────────────────────────────
+head('Installing rules');
+
+copyFile('rules/session-continuity.md', path.join(CLAUDE_DIR, 'rules', 'session-continuity.md'));
+copyFile('rules/auto-handoff.md', path.join(CLAUDE_DIR, 'rules', 'auto-handoff.md'));
+ok('Behavioral rules installed');
+
+// ─── Hooks ────────────────────────────────────────────
+head('Installing hooks');
+
 copyFile('hooks/context-monitor.sh', monitorPath);
 copyFile('hooks/session-cleanup.sh', path.join(CLAUDE_DIR, 'hooks', 'session-cleanup.sh'));
 fs.chmodSync(monitorPath, 0o755);
 fs.chmodSync(path.join(CLAUDE_DIR, 'hooks', 'session-cleanup.sh'), 0o755);
 
 if (isReinstall) {
-  // Restore user's custom settings
   let content = fs.readFileSync(monitorPath, 'utf-8');
   if (savedThreshold && savedThreshold !== '90') {
     content = content.replace('CLAUDE_CONTEXT_THRESHOLD:-90', `CLAUDE_CONTEXT_THRESHOLD:-${savedThreshold}`);
-    console.log(`    Preserved threshold: ${CYAN}${savedThreshold}%${NC}`);
+    ok(`Preserved threshold: ${CYAN}${savedThreshold}%${NC}`);
   }
   if (savedMaxContext && savedMaxContext !== '200000') {
     content = content.replace('CLAUDE_MAX_CONTEXT:-200000', `CLAUDE_MAX_CONTEXT:-${savedMaxContext}`);
-    console.log(`    Preserved max context: ${CYAN}${savedMaxContext} tokens${NC}`);
+    ok(`Preserved max context: ${CYAN}${savedMaxContext} tokens${NC}`);
   }
   fs.writeFileSync(monitorPath, content);
 }
-// Auto-handoff is opt-in: disabled by default (no file = disabled)
-// User enables via /auto-handoff which creates .auto-handoff-enabled
-// Clean up legacy disabled flag if present
+
+// Clean up legacy disabled flag
 const legacyDisabled = path.join(CLAUDE_DIR, 'hooks', '.auto-handoff-disabled');
 if (fs.existsSync(legacyDisabled)) fs.unlinkSync(legacyDisabled);
+ok('Context monitor + session cleanup hooks');
 
-// 5. Configure hooks in settings.json
-console.log(`  ${YELLOW}[5/10]${NC} Configuring hooks in settings.json...`);
+// ─── Settings ─────────────────────────────────────────
+head('Configuring settings.json');
+
 const settingsPath = path.join(CLAUDE_DIR, 'settings.json');
 const hooksConfig = {
   Stop: [{ hooks: [{ type: 'command', command: '"$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh"', timeout: 10 }] }],
@@ -109,15 +134,20 @@ if (fs.existsSync(settingsPath)) {
   if (!JSON.stringify(settings).includes('context-monitor')) {
     settings.hooks = hooksConfig;
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+    ok('Hooks added to existing settings.json');
+  } else {
+    ok('Hooks already configured');
   }
 } else {
   fs.writeFileSync(settingsPath, JSON.stringify({ hooks: hooksConfig }, null, 2) + '\n');
+  ok('settings.json created with hooks');
 }
 
-// 4. Create initial _active.md
+// ─── Handoff ──────────────────────────────────────────
+head('Setting up handoff storage');
+
 const activePath = path.join(CLAUDE_DIR, 'handoffs', '_active.md');
 if (!fs.existsSync(activePath)) {
-  console.log(`  ${YELLOW}[6/10]${NC} Creating initial handoff...`);
   fs.writeFileSync(activePath, `# Session Handoff
 
 > No active session yet. Use \`/handoff\` or \`/save-handoff\` to save your first session state.
@@ -143,24 +173,31 @@ if (!fs.existsSync(activePath)) {
 ## Decisions Registry
 (none)
 `);
+  ok('Initial handoff template created');
 } else {
-  console.log(`  ${YELLOW}[6/10]${NC} Handoff already exists, keeping it`);
+  ok('Existing handoff preserved');
 }
 
-// 7. Update .gitignore
-console.log(`  ${YELLOW}[7/10]${NC} Updating .gitignore...`);
+// ─── Gitignore ────────────────────────────────────────
+head('Updating .gitignore');
+
 const gitignorePath = path.join(PROJECT_DIR, '.gitignore');
 if (fs.existsSync(gitignorePath)) {
   const content = fs.readFileSync(gitignorePath, 'utf-8');
   if (!content.includes('.claude/handoffs/')) {
     fs.appendFileSync(gitignorePath, '\n# claude-code-handoff (personal session state)\n.claude/handoffs/\n');
+    ok('Added .claude/handoffs/ to .gitignore');
+  } else {
+    ok('Already in .gitignore');
   }
 } else {
   fs.writeFileSync(gitignorePath, '# claude-code-handoff (personal session state)\n.claude/handoffs/\n');
+  ok('.gitignore created');
 }
 
-// 8. Update CLAUDE.md
-console.log(`  ${YELLOW}[8/10]${NC} Updating CLAUDE.md...`);
+// ─── CLAUDE.md ────────────────────────────────────────
+head('Updating CLAUDE.md');
+
 const claudeMdPath = path.join(CLAUDE_DIR, 'CLAUDE.md');
 const continuityBlock = `## Session Continuity (MANDATORY)
 
@@ -179,13 +216,26 @@ if (fs.existsSync(claudeMdPath)) {
     } else {
       fs.appendFileSync(claudeMdPath, '\n' + continuityBlock + '\n');
     }
+    ok('Session Continuity section added');
+  } else {
+    ok('Session Continuity already present');
   }
 } else {
   fs.writeFileSync(claudeMdPath, `# Project Rules\n\n${continuityBlock}\n`);
+  ok('CLAUDE.md created');
 }
 
-// 9. Verify
-console.log(`  ${YELLOW}[9/10]${NC} Verifying installation...`);
+// ─── Legacy cleanup ──────────────────────────────────
+let cleaned = 0;
+for (const f of ['retomar.md', 'salvar-handoff.md', 'trocar-contexto.md', 'auto-handoff-toggle.md']) {
+  const fp = path.join(CLAUDE_DIR, 'commands', f);
+  if (fs.existsSync(fp)) { fs.unlinkSync(fp); cleaned++; }
+}
+if (cleaned > 0) info(`Removed ${cleaned} legacy command(s)`);
+
+// ─── Verify ───────────────────────────────────────────
+head('Verifying');
+
 let installed = 0;
 for (const f of ['resume.md', 'save-handoff.md', 'switch-context.md', 'handoff.md', 'delete-handoff.md', 'auto-handoff.md']) {
   if (fs.existsSync(path.join(CLAUDE_DIR, 'commands', f))) installed++;
@@ -194,31 +244,28 @@ let hooksOk = 0;
 if (fs.existsSync(path.join(CLAUDE_DIR, 'hooks', 'context-monitor.sh'))) hooksOk++;
 if (fs.existsSync(path.join(CLAUDE_DIR, 'hooks', 'session-cleanup.sh'))) hooksOk++;
 
-console.log('');
-console.log(`  ${YELLOW}[10/10]${NC} Done!`);
-console.log('');
 if (installed === 6 && hooksOk === 2) {
-  console.log(`${GREEN}  Installed successfully! (${installed}/6 commands, ${hooksOk}/2 hooks)${NC}`);
+  ok(`${installed}/6 commands, ${hooksOk}/2 hooks`);
 } else {
-  console.log(`${YELLOW}  Partial install: ${installed}/6 commands, ${hooksOk}/2 hooks${NC}`);
+  fail(`Partial: ${installed}/6 commands, ${hooksOk}/2 hooks`);
 }
+
+// ─── Done ─────────────────────────────────────────────
 console.log('');
-console.log('  Commands available:');
-console.log(`    ${CYAN}/handoff${NC}              Auto-save session (no wizard)`);
-console.log(`    ${CYAN}/resume${NC}               Resume with wizard`);
-console.log(`    ${CYAN}/save-handoff${NC}         Save session state (wizard)`);
-console.log(`    ${CYAN}/switch-context${NC}       Switch workstream`);
-console.log(`    ${CYAN}/delete-handoff${NC}       Delete handoff(s)`);
-console.log(`    ${CYAN}/auto-handoff${NC}         Toggle auto-handoff on/off`);
+console.log(`  ${AMBER}${BOLD}════════════════════════════════════════${NC}`);
+console.log(`  ${GREEN}${BOLD}  Installed successfully!${NC}`);
+console.log(`  ${AMBER}${BOLD}════════════════════════════════════════${NC}`);
 console.log('');
-console.log(`  Auto-handoff: ${YELLOW}(beta — disabled by default)${NC}`);
-console.log(`    Use ${CYAN}/auto-handoff${NC} to enable and configure threshold`);
+console.log(`  ${WHITE}${BOLD}Commands:${NC}`);
+console.log(`    ${CYAN}/handoff${NC}            ${GRAY}Auto-save session${NC}`);
+console.log(`    ${CYAN}/resume${NC}             ${GRAY}Resume with wizard${NC}`);
+console.log(`    ${CYAN}/save-handoff${NC}       ${GRAY}Save with options${NC}`);
+console.log(`    ${CYAN}/switch-context${NC}     ${GRAY}Switch workstream${NC}`);
+console.log(`    ${CYAN}/delete-handoff${NC}     ${GRAY}Delete handoff(s)${NC}`);
+console.log(`    ${CYAN}/auto-handoff${NC}       ${GRAY}Toggle auto-handoff${NC}`);
 console.log('');
-console.log('  Files:');
-console.log('    .claude/commands/     6 command files');
-console.log('    .claude/rules/        session-continuity.md, auto-handoff.md');
-console.log('    .claude/hooks/        context-monitor.sh, session-cleanup.sh');
-console.log('    .claude/handoffs/     session state (gitignored)');
+console.log(`  ${WHITE}${BOLD}Auto-handoff:${NC} ${DIM}beta — disabled by default${NC}`);
+console.log(`  ${GRAY}Run ${CYAN}/auto-handoff${GRAY} inside Claude Code to enable${NC}`);
 console.log('');
-console.log(`  ${YELLOW}Start Claude Code and use /resume to begin.${NC}`);
+console.log(`  ${DIM}Start Claude Code and use ${WHITE}/resume${DIM} to begin.${NC}`);
 console.log('');
