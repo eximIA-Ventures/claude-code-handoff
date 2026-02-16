@@ -1,0 +1,23 @@
+{
+  "name": "claude-code-handoff",
+  "version": "1.0.0",
+  "description": "Session continuity for Claude Code — handoff system with wizards for multi-context work",
+  "bin": {
+    "claude-code-handoff": "./cli.js"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "handoff",
+    "session",
+    "continuity",
+    "ai",
+    "context"
+  ],
+  "author": "Hugo Capitelli",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hugocapitelli/claude-code-handoff"
+  }
+}
