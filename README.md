@@ -130,6 +130,44 @@ flowchart TD
     F --> G
 ```
 
+### The `/context-doctor` Command
+
+Diagnoses context usage and recommends optimizations to maximize your usable context window.
+
+```mermaid
+flowchart TD
+    A["/context-doctor"] --> B[Audit always-on files]
+    B --> B1["CLAUDE.md — count lines"]
+    B --> B2["rules/*.md — count lines each"]
+    B --> B3["Global CLAUDE.md — check if exists"]
+    B1 & B2 & B3 --> C[Audit handoff size]
+    C --> C1["_active.md — count lines & sessions"]
+    C1 --> D[Scan for bloat patterns]
+    D --> D1["Code examples in CLAUDE.md?"]
+    D --> D2["Duplicate instructions?"]
+    D --> D3["Rules files > 50 lines?"]
+    D --> D4["Generic 'best practices' rules?"]
+    D1 & D2 & D3 & D4 --> E["📊 Present Context Health Report"]
+    E --> F{User wants fixes?}
+    F -->|Apply all| G["Auto-fix all recommendations"]
+    F -->|Let me choose| H["Apply selected fixes"]
+    F -->|Just the report| I["No changes made"]
+```
+
+#### When to use
+
+- **Session feeling slow or inconsistent** — when Claude starts "forgetting" things or giving conflicting answers, context may be polluted or bloated
+- **Before complex tasks** — to ensure context is clean and focused on what matters
+- **After installing new tools** — MCP rules, agent definitions, and framework configs can bloat context silently
+- **When something seems off** — if Claude seems confused about the project state
+
+#### Why to use
+
+- **Diagnoses** the current state of your always-on context (everything loaded on every message)
+- **Identifies** unnecessary or conflicting information that may be hurting performance
+- **Optimizes** the context window so Claude works more efficiently — every token saved is a token available for actual work
+- **Actionable** — provides specific, numbered recommendations with line ranges and exact actions
+
 ### File Architecture
 
 ```mermaid
@@ -497,18 +535,26 @@ graph TD
         SW --> SW3["Or creates fresh"]
     end
 
+    subgraph "Diagnose"
+        CD["/context-doctor"]
+        CD --> CD1["Audits always-on files"]
+        CD --> CD2["Detects bloat patterns"]
+        CD --> CD3["Offers auto-fix"]
+    end
+
     style H fill:#2d5016,stroke:#4ade80,color:#fff
     style S fill:#1e3a5f,stroke:#60a5fa,color:#fff
     style R fill:#5c1e8a,stroke:#c084fc,color:#fff
     style SW fill:#7c2d12,stroke:#fb923c,color:#fff
+    style CD fill:#5c4033,stroke:#f59e0b,color:#fff
 ```
 
-| | `/handoff` | `/save-handoff` | `/resume` | `/switch-context` | `/auto-handoff` |
-|---|---|---|---|---|---|
-| **When** | Before `/clear` | When you need options | Start of session | Mid-session | Anytime |
-| **Interactive** | No | Yes (wizard) | Yes (picker) | No (with arg) | Yes (wizard) |
-| **Creates files** | Auto | User chooses | No | Auto | Toggle file |
-| **Reads files** | `_active.md` | `_active.md` + `archive/` | Handoff only (no key files) | `_active.md` + target | Hook config |
+| | `/handoff` | `/save-handoff` | `/resume` | `/switch-context` | `/auto-handoff` | `/context-doctor` |
+|---|---|---|---|---|---|---|
+| **When** | Before `/clear` | When you need options | Start of session | Mid-session | Anytime | When context feels off |
+| **Interactive** | No | Yes (wizard) | Yes (picker) | No (with arg) | Yes (wizard) | Yes (report + fix) |
+| **Creates files** | Auto | User chooses | No | Auto | Toggle file | No (read-only) |
+| **Reads files** | `_active.md` | `_active.md` + `archive/` | Handoff only (no key files) | `_active.md` + target | Hook config | CLAUDE.md + rules/ + handoffs |
 
 ---
 
@@ -525,7 +571,9 @@ Every line in `CLAUDE.md` and `rules/` costs tokens on **every single message**.
 
 **Estimated savings: ~5-6K tokens per message** for projects with moderate CLAUDE.md and rules.
 
-### `/context-doctor` — Diagnose context bloat
+### `/context-doctor` — Diagnose and fix context bloat
+
+Think of `/context-doctor` as a **health check** for your Claude Code session. It audits every file that's loaded on every single message (CLAUDE.md, rules/, handoffs) and tells you exactly what's wasting tokens — with specific, actionable fixes.
 
 Run `/context-doctor` to get a full audit of your context usage:
 
