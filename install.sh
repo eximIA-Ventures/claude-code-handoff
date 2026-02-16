@@ -45,26 +45,155 @@ download_file() {
 }
 
 # 1. Create directories
-echo -e "  ${YELLOW}[1/8]${NC} Creating directories..."
+echo -e "  ${YELLOW}[1/10]${NC} Creating directories..."
 mkdir -p "$CLAUDE_DIR/commands"
 mkdir -p "$CLAUDE_DIR/rules"
+mkdir -p "$CLAUDE_DIR/hooks"
 mkdir -p "$CLAUDE_DIR/handoffs/archive"
 
 # 2. Download/copy commands
-echo -e "  ${YELLOW}[2/8]${NC} Installing commands..."
+echo -e "  ${YELLOW}[2/10]${NC} Installing commands..."
 download_file "commands/resume.md" "$CLAUDE_DIR/commands/resume.md"
 download_file "commands/save-handoff.md" "$CLAUDE_DIR/commands/save-handoff.md"
 download_file "commands/switch-context.md" "$CLAUDE_DIR/commands/switch-context.md"
 download_file "commands/handoff.md" "$CLAUDE_DIR/commands/handoff.md"
 download_file "commands/delete-handoff.md" "$CLAUDE_DIR/commands/delete-handoff.md"
+download_file "commands/auto-handoff.md" "$CLAUDE_DIR/commands/auto-handoff.md"
 
 # 3. Download/copy rules
-echo -e "  ${YELLOW}[3/8]${NC} Installing rules..."
+echo -e "  ${YELLOW}[3/10]${NC} Installing rules..."
 download_file "rules/session-continuity.md" "$CLAUDE_DIR/rules/session-continuity.md"
+download_file "rules/auto-handoff.md" "$CLAUDE_DIR/rules/auto-handoff.md"
 
-# 4. Create initial _active.md if not exists
+# 4. Install hooks (auto-handoff context monitor)
+echo -e "  ${YELLOW}[4/10]${NC} Installing hooks..."
+download_file "hooks/context-monitor.sh" "$CLAUDE_DIR/hooks/context-monitor.sh"
+download_file "hooks/session-cleanup.sh" "$CLAUDE_DIR/hooks/session-cleanup.sh"
+chmod +x "$CLAUDE_DIR/hooks/context-monitor.sh"
+chmod +x "$CLAUDE_DIR/hooks/session-cleanup.sh"
+
+# 5. Configure hooks in settings.json
+echo -e "  ${YELLOW}[5/10]${NC} Configuring hooks in settings.json..."
+SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+if [ -f "$SETTINGS_FILE" ]; then
+  # Check if hooks already configured
+  if ! grep -q "context-monitor" "$SETTINGS_FILE" 2>/dev/null; then
+    # Merge hooks into existing settings.json using jq if available
+    if command -v jq &>/dev/null; then
+      HOOKS_JSON='{
+        "hooks": {
+          "Stop": [{"hooks": [{"type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh", "timeout": 10}]}],
+          "SessionStart": [{"hooks": [{"type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh", "timeout": 5}]}]
+        }
+      }'
+      jq --argjson hooks "$(echo "$HOOKS_JSON" | jq '.hooks')" '. + {hooks: $hooks}' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
+    else
+      # Fallback: rewrite settings.json preserving existing keys
+      echo -e "  ${YELLOW}  ⚠ jq not found. Adding hooks config manually...${NC}"
+      # Read existing content, strip trailing brace, append hooks
+      EXISTING=$(cat "$SETTINGS_FILE")
+      # Remove trailing } and whitespace
+      EXISTING=$(echo "$EXISTING" | sed '$ s/}$//')
+      cat > "$SETTINGS_FILE" << 'SETTINGSEOF'
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+SETTINGSEOF
+      # Merge with original using jq-less approach: just add hooks key
+      # Since we can't reliably merge JSON without jq, write a complete file
+      # preserving the language setting if it exists
+      LANG_SETTING=$(echo "$EXISTING" | grep '"language"' | head -1 | sed 's/,$//')
+      if [ -n "$LANG_SETTING" ]; then
+        cat > "$SETTINGS_FILE" << SETTINGSEOF
+{
+  ${LANG_SETTING},
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+SETTINGSEOF
+      fi
+    fi
+  fi
+else
+  # Create new settings.json with hooks
+  cat > "$SETTINGS_FILE" << 'SETTINGSEOF'
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+SETTINGSEOF
+fi
+
+# 6. Create initial _active.md if not exists
 if [ ! -f "$CLAUDE_DIR/handoffs/_active.md" ]; then
-  echo -e "  ${YELLOW}[4/8]${NC} Creating initial handoff..."
+  echo -e "  ${YELLOW}[6/10]${NC} Creating initial handoff..."
   cat > "$CLAUDE_DIR/handoffs/_active.md" << 'HANDOFF'
 # Session Handoff
 
@@ -92,11 +221,11 @@ if [ ! -f "$CLAUDE_DIR/handoffs/_active.md" ]; then
 (none)
 HANDOFF
 else
-  echo -e "  ${YELLOW}[4/8]${NC} Handoff already exists, keeping it"
+  echo -e "  ${YELLOW}[6/10]${NC} Handoff already exists, keeping it"
 fi
 
-# 5. Add to .gitignore
-echo -e "  ${YELLOW}[5/8]${NC} Updating .gitignore..."
+# 7. Add to .gitignore
+echo -e "  ${YELLOW}[7/10]${NC} Updating .gitignore..."
 GITIGNORE="$PROJECT_DIR/.gitignore"
 if [ -f "$GITIGNORE" ]; then
   if ! grep -q ".claude/handoffs/" "$GITIGNORE" 2>/dev/null; then
@@ -109,8 +238,8 @@ else
   echo ".claude/handoffs/" >> "$GITIGNORE"
 fi
 
-# 6. Add to CLAUDE.md
-echo -e "  ${YELLOW}[6/8]${NC} Updating CLAUDE.md..."
+# 8. Add to CLAUDE.md
+echo -e "  ${YELLOW}[8/10]${NC} Updating CLAUDE.md..."
 CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
 CONTINUITY_BLOCK='## Session Continuity (MANDATORY)
 
@@ -150,20 +279,23 @@ Use `/handoff` before `/clear`. Use `/resume` to pick up. Use `/switch-context <
 CLAUDEMD
 fi
 
-# 7. Summary
-echo -e "  ${YELLOW}[7/8]${NC} Verifying installation..."
+# 9. Summary
+echo -e "  ${YELLOW}[9/10]${NC} Verifying installation..."
 INSTALLED=0
-for f in resume.md save-handoff.md switch-context.md handoff.md delete-handoff.md; do
+for f in resume.md save-handoff.md switch-context.md handoff.md delete-handoff.md auto-handoff.md; do
   [ -f "$CLAUDE_DIR/commands/$f" ] && INSTALLED=$((INSTALLED + 1))
 done
+HOOKS_OK=0
+[ -f "$CLAUDE_DIR/hooks/context-monitor.sh" ] && HOOKS_OK=$((HOOKS_OK + 1))
+[ -f "$CLAUDE_DIR/hooks/session-cleanup.sh" ] && HOOKS_OK=$((HOOKS_OK + 1))
 
 echo ""
-echo -e "  ${YELLOW}[8/8]${NC} Done!"
+echo -e "  ${YELLOW}[10/10]${NC} Done!"
 echo ""
-if [ "$INSTALLED" -eq 5 ]; then
-  echo -e "${GREEN}  Installed successfully! ($INSTALLED/5 commands)${NC}"
+if [ "$INSTALLED" -eq 6 ] && [ "$HOOKS_OK" -eq 2 ]; then
+  echo -e "${GREEN}  Installed successfully! ($INSTALLED/6 commands, $HOOKS_OK/2 hooks)${NC}"
 else
-  echo -e "${YELLOW}  Partial install: $INSTALLED/5 commands${NC}"
+  echo -e "${YELLOW}  Partial install: $INSTALLED/6 commands, $HOOKS_OK/2 hooks${NC}"
 fi
 echo ""
 echo -e "  Commands available:"
@@ -172,10 +304,16 @@ echo -e "    ${CYAN}/resume${NC}               Resume with wizard"
 echo -e "    ${CYAN}/save-handoff${NC}         Save session state (wizard)"
 echo -e "    ${CYAN}/switch-context${NC}       Switch workstream"
 echo -e "    ${CYAN}/delete-handoff${NC}       Delete handoff(s)"
+echo -e "    ${CYAN}/auto-handoff${NC}         Toggle auto-handoff on/off"
+echo ""
+echo -e "  Auto-handoff:"
+echo -e "    Context monitor hook installed (triggers at 90% of context)"
+echo -e "    Use ${CYAN}/auto-handoff${NC} to enable/disable or adjust threshold"
 echo ""
 echo -e "  Files:"
-echo -e "    .claude/commands/     5 command files"
-echo -e "    .claude/rules/        session-continuity.md"
+echo -e "    .claude/commands/     6 command files"
+echo -e "    .claude/rules/        session-continuity.md, auto-handoff.md"
+echo -e "    .claude/hooks/        context-monitor.sh, session-cleanup.sh"
 echo -e "    .claude/handoffs/     session state (gitignored)"
 echo ""
 echo -e "  ${YELLOW}Start Claude Code and use /resume to begin.${NC}"

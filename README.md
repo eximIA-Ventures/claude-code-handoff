@@ -45,8 +45,11 @@ Instead of relying on lossy compression or starting from zero, **claude-code-han
 | `/save-handoff` | Save with options — choose where and how |
 | `/switch-context <topic>` | Switch between parallel workstreams |
 | `/delete-handoff` | Delete one or more saved handoffs |
+| `/auto-handoff` | Enable/disable auto-handoff or adjust threshold |
 
 The workflow becomes: work until context is full → `/handoff` → `/clear` → `/resume` → continue with full context. No degradation, no amnesia. Just clean handoffs.
+
+**New in v1.4:** Auto-handoff monitors your context usage and **automatically triggers a handoff** when the transcript reaches 90% capacity — so you never forget to save.
 
 Session state is stored in `.claude/handoffs/` (gitignored) — each developer keeps their own context, no conflicts.
 
@@ -152,13 +155,49 @@ graph TD
 
 ---
 
+## Auto-Handoff (Context Monitor)
+
+The biggest risk with handoffs is **forgetting to save**. Auto-handoff eliminates this by monitoring your transcript size and forcing a save when context is running low.
+
+### How It Works
+
+```mermaid
+flowchart TD
+    A[Claude responds] --> B[Stop hook fires]
+    B --> C{Transcript > 90%?}
+    C -->|No| D[Continue normally]
+    C -->|Yes| E{Already triggered?}
+    E -->|Yes| D
+    E -->|No| F[Create flag file]
+    F --> G["Block: force handoff save"]
+    G --> H[Claude saves _active.md]
+    H --> I["User: /clear → /resume"]
+```
+
+- **Detection**: Measures transcript file size (default 90% of ~500KB max context)
+- **One-shot**: Uses a flag file in `/tmp` to prevent infinite loops — triggers only once per session
+- **Configurable**: Adjust threshold % via `CLAUDE_CONTEXT_THRESHOLD` env var or `/auto-handoff`
+- **Disableable**: Run `/auto-handoff` to turn it off
+
+### Configuration
+
+```bash
+# Change threshold (default: 90% of context)
+export CLAUDE_CONTEXT_THRESHOLD=80  # trigger at 80% instead
+
+# Or use the interactive toggle
+/auto-handoff
+```
+
+---
+
 ## Install
 
 ### Option A: npx (recommended)
 
 ```bash
 cd your-project
-npx claude-code-handoff@1.3.0
+npx claude-code-handoff@latest
 ```
 
 ### Option B: curl
@@ -182,22 +221,29 @@ cd your-project
 your-project/
 └── .claude/
     ├── commands/
-    │   ├── handoff.md            ← /handoff (auto-save)
-    │   ├── resume.md             ← /resume (interactive picker)
-    │   ├── save-handoff.md       ← /save-handoff (wizard)
-    │   ├── switch-context.md     ← /switch-context (workstream switch)
-    │   └── delete-handoff.md     ← /delete-handoff (remove handoffs)
+    │   ├── handoff.md              ← /handoff (auto-save)
+    │   ├── resume.md               ← /resume (interactive picker)
+    │   ├── save-handoff.md         ← /save-handoff (wizard)
+    │   ├── switch-context.md       ← /switch-context (workstream switch)
+    │   ├── delete-handoff.md       ← /delete-handoff (remove handoffs)
+    │   └── auto-handoff.md  ← /auto-handoff (on/off)
     ├── rules/
-    │   └── session-continuity.md ← Auto-loaded behavioral rules
-    └── handoffs/                 ← Session state (gitignored)
-        ├── _active.md            ← Current workstream
-        └── archive/              ← Paused workstreams
+    │   ├── session-continuity.md   ← Auto-loaded behavioral rules
+    │   └── auto-handoff.md         ← Auto-handoff trigger rules
+    ├── hooks/
+    │   ├── context-monitor.sh      ← Stop hook (monitors context size)
+    │   └── session-cleanup.sh      ← SessionStart hook (cleans old flags)
+    ├── settings.json               ← Hook configuration
+    └── handoffs/                   ← Session state (gitignored)
+        ├── _active.md              ← Current workstream
+        └── archive/                ← Paused workstreams
 ```
 
 The installer also:
 - Creates the full `.claude/handoffs/archive/` directory structure
 - Adds `.claude/handoffs/` to `.gitignore`
 - Adds a `Session Continuity` section to `.claude/CLAUDE.md` (creates one if missing)
+- Configures auto-handoff hooks in `.claude/settings.json`
 
 ---
 
@@ -338,12 +384,12 @@ graph TD
     style SW fill:#7c2d12,stroke:#fb923c,color:#fff
 ```
 
-| | `/handoff` | `/save-handoff` | `/resume` | `/switch-context` |
-|---|---|---|---|---|
-| **When** | Before `/clear` | When you need options | Start of session | Mid-session |
-| **Interactive** | No | Yes (wizard) | Yes (picker) | No (with arg) |
-| **Creates files** | Auto | User chooses | No | Auto |
-| **Reads files** | `_active.md` | `_active.md` + `archive/` | All handoffs | `_active.md` + target |
+| | `/handoff` | `/save-handoff` | `/resume` | `/switch-context` | `/auto-handoff` |
+|---|---|---|---|---|---|
+| **When** | Before `/clear` | When you need options | Start of session | Mid-session | Anytime |
+| **Interactive** | No | Yes (wizard) | Yes (picker) | No (with arg) | Yes (wizard) |
+| **Creates files** | Auto | User chooses | No | Auto | Toggle file |
+| **Reads files** | `_active.md` | `_active.md` + `archive/` | All handoffs | `_active.md` + target | Hook config |
 
 ---
 
@@ -418,7 +464,7 @@ rm -rf .claude/handoffs/  # ⚠️ deletes all session history
 A: Yes. Handoff files are gitignored, so each developer has their own session state. No conflicts.
 
 **Q: What happens if I forget to `/handoff` before `/clear`?**
-A: The context is lost for that session. The previous handoff is still there — you just won't have the latest session recorded.
+A: With auto-handoff enabled (default since v1.4), Claude will automatically save the handoff when the context reaches 90%. Without it, the context is lost for that session — the previous handoff is still there, but you won't have the latest session recorded.
 
 **Q: Can I have unlimited workstreams?**
 A: Yes. The `archive/` folder has no limit. Each workstream is a single `.md` file.

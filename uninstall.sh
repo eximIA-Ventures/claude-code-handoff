@@ -27,39 +27,61 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 # 1. Remove commands
-echo -e "  ${YELLOW}[1/4]${NC} Removing commands..."
+echo -e "  ${YELLOW}[1/6]${NC} Removing commands..."
 rm -f "$CLAUDE_DIR/commands/handoff.md"
 rm -f "$CLAUDE_DIR/commands/resume.md"
 rm -f "$CLAUDE_DIR/commands/save-handoff.md"
 rm -f "$CLAUDE_DIR/commands/switch-context.md"
 rm -f "$CLAUDE_DIR/commands/delete-handoff.md"
+rm -f "$CLAUDE_DIR/commands/auto-handoff.md"
+# Also remove legacy commands if present
+rm -f "$CLAUDE_DIR/commands/auto-handoff-toggle.md"
 # Also remove legacy Portuguese commands if present
 rm -f "$CLAUDE_DIR/commands/retomar.md"
 rm -f "$CLAUDE_DIR/commands/salvar-handoff.md"
 rm -f "$CLAUDE_DIR/commands/trocar-contexto.md"
 
 # 2. Remove rules
-echo -e "  ${YELLOW}[2/4]${NC} Removing rules..."
+echo -e "  ${YELLOW}[2/6]${NC} Removing rules..."
 rm -f "$CLAUDE_DIR/rules/session-continuity.md"
+rm -f "$CLAUDE_DIR/rules/auto-handoff.md"
 
-# 3. Remove handoffs (with confirmation)
+# 3. Remove hooks
+echo -e "  ${YELLOW}[3/6]${NC} Removing hooks..."
+rm -f "$CLAUDE_DIR/hooks/context-monitor.sh"
+rm -f "$CLAUDE_DIR/hooks/session-cleanup.sh"
+rm -f "$CLAUDE_DIR/hooks/.auto-handoff-disabled"
+rmdir "$CLAUDE_DIR/hooks" 2>/dev/null || true
+
+# 4. Clean hooks from settings.json
+echo -e "  ${YELLOW}[4/6]${NC} Cleaning settings.json..."
+SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+if [ -f "$SETTINGS_FILE" ] && grep -q "context-monitor" "$SETTINGS_FILE" 2>/dev/null; then
+  if command -v jq &>/dev/null; then
+    jq 'del(.hooks)' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
+  else
+    echo -e "    ${YELLOW}⚠ jq not found — remove hooks from .claude/settings.json manually${NC}"
+  fi
+fi
+
+# 5. Remove handoffs (with confirmation)
 if [ -d "$CLAUDE_DIR/handoffs" ]; then
   # Check if there's actual content
   ACTIVE_CONTENT=$(cat "$CLAUDE_DIR/handoffs/_active.md" 2>/dev/null || echo "")
   if echo "$ACTIVE_CONTENT" | grep -q "No active session yet\|not started"; then
-    echo -e "  ${YELLOW}[3/4]${NC} Removing handoffs (no session data)..."
+    echo -e "  ${YELLOW}[5/6]${NC} Removing handoffs (no session data)..."
     rm -rf "$CLAUDE_DIR/handoffs"
   else
-    echo -e "  ${YELLOW}[3/4]${NC} ${RED}Handoffs contain session data!${NC}"
+    echo -e "  ${YELLOW}[5/6]${NC} ${RED}Handoffs contain session data!${NC}"
     echo -e "        Kept: .claude/handoffs/"
     echo -e "        Remove manually with: rm -rf .claude/handoffs/"
   fi
 else
-  echo -e "  ${YELLOW}[3/4]${NC} No handoffs directory found"
+  echo -e "  ${YELLOW}[5/6]${NC} No handoffs directory found"
 fi
 
-# 4. Clean .gitignore
-echo -e "  ${YELLOW}[4/4]${NC} Cleaning .gitignore..."
+# 6. Clean .gitignore
+echo -e "  ${YELLOW}[6/6]${NC} Cleaning .gitignore..."
 GITIGNORE="$PROJECT_DIR/.gitignore"
 if [ -f "$GITIGNORE" ]; then
   # Remove the handoff lines

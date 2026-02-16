@@ -45,20 +45,50 @@ download_file() {
 }
 
 # 1. Update commands
-echo -e "  ${YELLOW}[1/3]${NC} Updating commands..."
+echo -e "  ${YELLOW}[1/5]${NC} Updating commands..."
 download_file "commands/handoff.md" "$CLAUDE_DIR/commands/handoff.md"
 download_file "commands/resume.md" "$CLAUDE_DIR/commands/resume.md"
 download_file "commands/save-handoff.md" "$CLAUDE_DIR/commands/save-handoff.md"
 download_file "commands/switch-context.md" "$CLAUDE_DIR/commands/switch-context.md"
+download_file "commands/delete-handoff.md" "$CLAUDE_DIR/commands/delete-handoff.md"
+download_file "commands/auto-handoff.md" "$CLAUDE_DIR/commands/auto-handoff.md"
 
 # 2. Update rules
-echo -e "  ${YELLOW}[2/3]${NC} Updating rules..."
+echo -e "  ${YELLOW}[2/5]${NC} Updating rules..."
 download_file "rules/session-continuity.md" "$CLAUDE_DIR/rules/session-continuity.md"
+download_file "rules/auto-handoff.md" "$CLAUDE_DIR/rules/auto-handoff.md"
 
-# 3. Remove legacy Portuguese commands if present
-echo -e "  ${YELLOW}[3/3]${NC} Cleaning up legacy files..."
+# 3. Update hooks
+echo -e "  ${YELLOW}[3/5]${NC} Updating hooks..."
+mkdir -p "$CLAUDE_DIR/hooks"
+download_file "hooks/context-monitor.sh" "$CLAUDE_DIR/hooks/context-monitor.sh"
+download_file "hooks/session-cleanup.sh" "$CLAUDE_DIR/hooks/session-cleanup.sh"
+chmod +x "$CLAUDE_DIR/hooks/context-monitor.sh"
+chmod +x "$CLAUDE_DIR/hooks/session-cleanup.sh"
+
+# 4. Ensure hooks are configured in settings.json
+echo -e "  ${YELLOW}[4/5]${NC} Checking settings.json hooks..."
+SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+if [ -f "$SETTINGS_FILE" ]; then
+  if ! grep -q "context-monitor" "$SETTINGS_FILE" 2>/dev/null; then
+    if command -v jq &>/dev/null; then
+      HOOKS_JSON='{"Stop":[{"hooks":[{"type":"command","command":"$CLAUDE_PROJECT_DIR/.claude/hooks/context-monitor.sh","timeout":10}]}],"SessionStart":[{"hooks":[{"type":"command","command":"$CLAUDE_PROJECT_DIR/.claude/hooks/session-cleanup.sh","timeout":5}]}]}'
+      jq --argjson hooks "$HOOKS_JSON" '. + {hooks: $hooks}' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
+      echo -e "    Hooks added to settings.json"
+    else
+      echo -e "    ${YELLOW}⚠ jq not found — add hooks to .claude/settings.json manually${NC}"
+    fi
+  else
+    echo -e "    Hooks already configured"
+  fi
+else
+  echo -e "    ${YELLOW}⚠ settings.json not found — run install first${NC}"
+fi
+
+# 5. Remove legacy files if present
+echo -e "  ${YELLOW}[5/5]${NC} Cleaning up legacy files..."
 CLEANED=0
-for f in retomar.md salvar-handoff.md trocar-contexto.md; do
+for f in retomar.md salvar-handoff.md trocar-contexto.md auto-handoff-toggle.md; do
   if [ -f "$CLAUDE_DIR/commands/$f" ]; then
     rm -f "$CLAUDE_DIR/commands/$f"
     CLEANED=$((CLEANED + 1))
